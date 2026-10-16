@@ -1,0 +1,68 @@
+# Configuracion de entrenamiento - Prevencion de Caidas y Riesgos en Escaleras
+# Consumida por scripts/train.py. Todo es sobreescribible por CLI.
+
+# --- Modelo ---------------------------------------------------------------
+# yolov8s como modelo final. Con el dataset ampliado a 6 clases y 2505
+# imagenes de entrenamiento ya hay volumen suficiente para que un modelo
+# mayor rinda, y Caso.md exige >=30 FPS (RQNF01) con >=6 GB de VRAM
+# (RQNF03): yolov8s a 640 ronda los 100 FPS de inferencia, muy por encima.
+# El baseline yolov8n de 5 clases quedo en runs/yolov8n_balanced y la primera
+# version de 6 clases en runs/yolov8s_6clases.
+model: yolov8s
+
+# --- Datos ----------------------------------------------------------------
+# `data_zoom.yaml` mezcla el train original con `images/train_zoom`, las
+# variantes de primer plano de scripts/add_zoom_variants.py. Cubren el rango
+# de escala que faltaba (persona cerca / parcialmente fuera de cuadro).
+data: datasets/combined/data_zoom.yaml
+balanced_data: datasets/combined/data_balanced.yaml
+use_balanced: true
+# Techo de cajas por clase en el recorte.
+#
+# Antes se hacia por fraccion de imagenes, lo que recortaba la clase
+# equivocada (ver nota en scripts/train.py). Con la fusion de `persona` dentro
+# de `persona_erguida` (parte 2) esa clase suma `fall` + Le2i `Stand` +
+# `tracking`, asi que es la mayor por legitimos motivos y lleva la UNICA
+# cobertura de personas de espaldas y lejanas. Con un techo de 900 quedaba en
+# 242 cajas y se perdia justo ese dato, de ahi que el techo sea 2000: recorta
+# el exceso sin aniquilar la clase.
+max_boxes_per_class: 1500
+
+# --- Entrenamiento --------------------------------------------------------
+epochs: 100
+imgsz: 640
+batch: 12
+seed: 42
+device: 0
+workers: 2
+patience: 25          # early stopping
+project: runs
+name: yolov8s_v3
+
+# --- Augmentaciones -------------------------------------------------------
+# RQNF12 pide resiliencia ante variaciones de iluminacion, asi que se refuerza
+# HSV. `degrees` da tolerancia a la inclinacion de la camara sobre la escalera.
+hsv_h: 0.015
+hsv_s: 0.7
+hsv_v: 0.4
+degrees: 10.0
+translate: 0.1
+scale: 0.5
+shear: 2.0
+flipud: 0.0           # las escaleras son direccionales: no invertir vertical
+fliplr: 0.5
+mosaic: 1.0
+close_mosaic: 10      # desactiva mosaic en las ultimas 10 epocas
+mixup: 0.0
+
+# --- Entrenamiento / validacion final --------------------------------------
+lr0: 0.01
+lrf: 0.01
+momentum: 0.937
+weight_decay: 0.0005
+warmup_epochs: 3.0
+optimizer: auto
+cos_lr: false
+val: true
+plots: true
+save_period: -1

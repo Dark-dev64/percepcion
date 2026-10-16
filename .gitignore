@@ -1,0 +1,84 @@
+# --- Datos de origen (repo git propio, se clonaria aparte) ---
+stairs_fallhuman
+
+# --- Entorno virtual y dependencias ---
+venv
+.venv-audio/
+.test-runtime/
+
+# --- Datasets generados por los scripts de preparacion ---
+# Contienen symlinks a las imagenes originales mas los labels reescritos y
+# los .cache de Ultralytics. Todo es reproducible con:
+#   python3 scripts/prepare_le2i.py && python3 scripts/prepare_dataset.py --clean
+datasets/
+
+# --- Resultados de entrenamiento ---
+# Pesos (.pt de ~22 MB por corrida), metricas, graficas, alertas y evidencia.
+# Todo se regenera con scripts/train.py y scripts/evaluate.py
+runs/
+weights/
+
+# --- Pesos de modelos preentrenados descargados ---
+*.pt
+
+# --- Videos ---
+# Material de trabajo temporal: clips propios que se usan para extraer
+# fotogramas y despues se eliminan. NUNCA deben versionarse: son escenas
+# reales de personas y ademas pesan mucho.
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.webm
+*.m4v
+*.mpeg
+*.mpg
+*.wmv
+
+# --- Estado local del agente (Kilo) ---
+# No forma parte del entregable: contiene configuracion del editor y punteros
+# a worktrees, que jamas deben versionarse.
+.kilo/
+
+# --- Documento de requisitos ---
+# `Caso.md` es el pliego que aporto el usuario. Se usa como referencia de
+# trabajo pero no se versiona. Este patron vive en un commit propio: las dos
+# veces que se perdio estaba en el mismo commit que borraba el fichero, y la
+# reescritura del historial se lo llevaba por delante.
+Caso.md
+
+# --- Imagenes de prueba del usuario ---
+# El usuario entrego capturas de su escena para diagnosticar. Son imagenes de
+# personas y se pidio expresamente que NO se subieran. Este patron se perdio
+# dos veces al reescribir el historial, porque estaba en el mismo commit que
+# borraba los ficheros. No volver a usar `git add -A` sin revisar.
+Fase*.png
+Fase*.jpg
+capturas/
+pruebas/
+img_prueba*
+test_img*
+
+# --- Secretos y credenciales ---
+# PANEL_TOKEN (RQNF19) se lee de variable de entorno, nunca del repo.
+.env
+.env.*
+*.pem
+*.key
+*.p12
+kaggle.json
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# --- Sistema ---
+.DS_Store
+Thumbs.db
+# --- Carpeta temporal de videos de prueba ---
+escalera/
+# --- Carpeta temporal de videos de prueba ---
+Escaleras/
+

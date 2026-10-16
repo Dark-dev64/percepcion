@@ -1,0 +1,92 @@
+# ==============================================================================
+# SISTEMA DE DETECCIÓN DE CAÍDAS POR AUDIO (BAJO ÍNDICE DE FALSOS POSITIVOS)
+# Configuración Centralizada - Todos los umbrales y ventanas se definen aquí
+# ==============================================================================
+
+audio:
+  sample_rate: 16000
+  channels: 1
+  dtype: "float32"
+
+preprocess:
+  highpass_cutoff_hz: 80.0
+  highpass_order: 5
+  stationary_noise_reduction: true
+  noise_reduction_prop_decrease: 0.85
+  normalize_peak: true
+  target_peak_amplitude: 0.95
+  streaming_window_sec: 2.0
+  streaming_hop_sec: 0.5
+  circular_buffer_capacity_sec: 20.0
+
+trigger:
+  short_window_ms: 50
+  baseline_window_sec: 5.0
+  k_factor: 4.8                     # Multiplicador sobre mediana móvil de RMS base
+  min_absolute_rms: 0.015           # Piso mínimo para evitar disparo en silencio absoluto
+  cooldown_sec: 1.5                 # Tiempo mínimo entre triggers de etapa 1
+
+classifier:
+  window_around_impact_sec: 1.5     # Ventana alrededor del impacto (t_impact - 0.3s a t_impact + 1.2s)
+  pre_impact_offset_sec: 0.3
+  embedding_backend: "panns"        # Opciones: "panns", "yamnet", "cnn_mel"
+  embedding_dim: 2048               # 2048 para CNN14 PANNs, 1024 para YAMNet
+  model_type: "mlp"                 # Opciones: "mlp", "logistic_regression"
+  mlp_hidden_layers: [256, 64]
+  mlp_max_iter: 500
+  mlp_alpha: 0.001
+  calibration_method: "sigmoid"     # Platt scaling ("sigmoid") o "isotonic"
+  model_save_path: "audio_fall_detector/models/fall_classifier.joblib"
+  classes:
+    - "caida"
+    - "portazo"
+    - "objeto_cae"
+    - "pasos"
+    - "voz_tv"
+    - "ruido_fondo"
+  class_weights: "balanced"
+
+confirmation:
+  analysis_start_offset_sec: 1.0    # Iniciar análisis posterior al transitorio
+  analysis_duration_sec: 6.0        # Analizar hasta 7.0s posteriores al impacto
+  vocal_min_f0_hz: 180.0            # Rango vocal humano de pedido de auxilio / quejido
+  vocal_max_f0_hz: 850.0
+  vocal_min_confidence: 0.45
+  silence_energy_threshold_ratio: 1.25 # Energía anormalmente baja tras la caída (< 1.25 x baseline)
+  weight_vocal: 0.60
+  weight_silence: 0.40
+
+decision:
+  weight_classifier_caida: 0.65     # w1
+  weight_confirmation: 0.35         # w2
+  fall_threshold_confirmed: 0.68    # Umbral final para CAIDA_CONFIRMADA
+  fall_threshold_possible: 0.48     # Umbral para POSIBLE_CAIDA
+  slam_rejection_prob: 0.58         # Regla dura: si portazo u objeto_cae supera esto, rechaza
+  state_cooldown_sec: 30.0          # Tiempo en cooldown tras confirmar caída
+  save_event_clip: true
+  clip_pre_impact_sec: 3.0          # Clip de 10s: 3s previos + 7s posteriores
+  clip_post_impact_sec: 7.0
+  clips_directory: "audio_fall_detector/recordings/events"
+
+training:
+  random_seed: 42
+  test_size: 0.25
+  group_column: "session_id"        # Split por sesión para evitar fuga de datos
+  augmentation:
+    enabled: true
+    noise_snr_db_min: 12.0
+    noise_snr_db_max: 25.0
+    gain_db_min: -6.0
+    gain_db_max: 6.0
+    time_shift_ms_max: 120
+    reverb_enabled: true
+
+evaluation:
+  max_false_alarms_per_hour: 0.20   # Máximo permitido de falsas alarmas por hora
+  threshold_search_steps: 100
+  test_continuous_audio_hours: 4.0
+
+api:
+  host: "0.0.0.0"
+  port: 8000
+  log_level: "info"

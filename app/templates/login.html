@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Acceso al panel</title>
+<style>
+  body { background:#0f1115; color:#e6e9ef; font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+         display:flex; align-items:center; justify-content:center; height:100vh; margin:0; }
+  .box { background:#171a21; border:1px solid #262b36; border-radius:10px; padding:28px; width:340px; }
+  h1 { font-size:16px; margin-bottom:6px; }
+  p  { color:#8b93a5; font-size:12.5px; line-height:1.6; margin-bottom:18px; }
+  input { width:100%; box-sizing:border-box; background:#0d0f14; color:#e6e9ef;
+          border:1px solid #262b36; border-radius:6px; padding:9px 11px; font-size:13px; }
+  button { margin-top:12px; width:100%; background:#4c8dff; color:#fff; border:0;
+           border-radius:7px; padding:9px; font-size:13px; font-weight:560; cursor:pointer; }
+  .err { color:#e03c3c; font-size:12.5px; margin-bottom:12px; }
+</style>
+</head>
+<body>
+  <form class="box" method="post">
+    <h1>Panel de supervisión</h1>
+    <p>Acceso restringido. Este requisito es <b>RQNF19</b> (autenticación de
+       usuario para acceso al panel).</p>
+    {% if error %}<div class="err">{{ error }}</div>{% endif %}
+    <input type="password" name="token" placeholder="Token de acceso" autofocus required>
+    <button type="submit">Entrar</button>
+  </form>
+</body>
+</html>

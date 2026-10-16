@@ -1,0 +1,53 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - "supuesto-ideal-v*"
+      - "esrgan-previo-v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  create_release:
+    if: startsWith(github.ref_name, 'supuesto-ideal-v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Supuesto Ideal - Sistema de Prevención de Caídas
+          generate_release_notes: true
+          files: |
+            runs/yolov8s_zoom/weights/best.pt
+            yolov8s.pt
+            setup.sh
+
+  # Real-ESRGAN (semana 7): superresolución 4× en vivo. No toca el release
+  # "Supuesto Ideal": este job solo corre en tags esrgan-previo-v*.
+  create_esgrna_release:
+    if: startsWith(github.ref_name, 'esrgan-previo-v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create Real-ESGRAN Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Versión con mejora de video real_esrgan_x4 pre correcciones (Por si quema este proyecto)
+          generate_release_notes: true
+          files: |
+            app/real_esrgan.py
+            app/build_esrgan.py
+            setup.sh
+            requirements.txt

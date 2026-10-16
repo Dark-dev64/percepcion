@@ -1,0 +1,58 @@
+# Configuracion de entrenamiento - Escaleras dataset (fine-tuning)
+# Consumida por scripts/train_escaleras.py.
+#
+# Particion:
+#   - Estándar (ubicación de cámara): 4 videos train, 1 val, 1 test.
+#   - Extra (suplementario): todos a train.
+# Los frames se etiquetaron con pseudo-etiquetado usando yolov8s_zoom/best.pt
+# (conf=0.35). El dataset resultante tiene 1001 train, 45 val, 19 test.
+
+# --- Modelo ---
+# Se parte del modelo existente (fine-tuning), no de COCO.
+model: runs/yolov8s_zoom/weights/best.pt
+pretrained_weights: true
+
+# --- Datos ---
+data: datasets/escaleras_dataset/data.yaml
+balanced_data: datasets/escaleras_dataset/data.yaml
+use_balanced: false    # el dataset es pequeno; el balanceo por cajas no aplica
+max_boxes_per_class: 2000
+
+# --- Entrenamiento ---
+epochs: 100
+imgsz: 640
+batch: 8
+seed: 42
+device: 0
+workers: 2
+patience: 40           # early stopping mas generoso para dataset pequeno
+project: runs
+name: yolov8s_escaleras_v2
+resume:
+
+# --- Augmentaciones ---
+# RQNF12 pide resiliencia ante variaciones de iluminacion.
+hsv_h: 0.015
+hsv_s: 0.7
+hsv_v: 0.4
+degrees: 10.0
+translate: 0.1
+scale: 0.5
+shear: 2.0
+flipud: 0.0
+fliplr: 0.5
+mosaic: 1.0
+close_mosaic: 10
+mixup: 0.0
+
+# --- Optimizacion ---
+lr0: 0.0005             # menor LR para fine-tuning
+lrf: 0.01
+momentum: 0.937
+weight_decay: 0.0005
+warmup_epochs: 3.0
+optimizer: auto
+cos_lr: false
+val: true
+plots: true
+save_period: -1

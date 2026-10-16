@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prevención de Caídas y Riesgos en Escaleras</title>
+<style>
+  :root {
+    --bg:#0f1115; --panel:#171a21; --line:#262b36; --text:#e6e9ef;
+    --muted:#8b93a5; --accent:#4c8dff; --alto:#e03c3c; --medio:#f2a83c; --bajo:#3fb85a;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--text);
+         font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; padding:24px; }
+  .wrap { max-width:1280px; margin:0 auto; }
+  h1 { font-size:20px; font-weight:650; margin-bottom:4px; }
+  .sub { color:var(--muted); font-size:13px; margin-bottom:20px; }
+  .tabs { display:flex; gap:6px; margin-bottom:16px; border-bottom:1px solid var(--line); }
+  .tab { padding:9px 18px; cursor:pointer; font-size:14px; color:var(--muted);
+         border-bottom:2px solid transparent; user-select:none; }
+  .tab:hover { color:var(--text); }
+  .tab.on { color:var(--text); border-bottom-color:var(--accent); }
+  .panel { display:none; }
+  .panel.on { display:block; }
+  .grid { display:grid; grid-template-columns:1fr 320px; gap:16px; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:16px; }
+  h2 { font-size:13px; text-transform:uppercase; letter-spacing:.06em;
+       color:var(--muted); margin-bottom:12px; font-weight:600; }
+  .ctrl { display:flex; gap:14px; align-items:center; flex-wrap:wrap; margin-bottom:14px; }
+  label { font-size:13px; color:var(--muted); }
+  input[type=range] { width:150px; vertical-align:middle; }
+  input[type=file] { font-size:13px; }
+  button { background:var(--accent); color:#fff; border:0; border-radius:7px;
+           padding:8px 16px; font-size:13px; font-weight:560; cursor:pointer; }
+   button:active { background:var(--accent); transform:translateY(0); }
+   button:disabled { opacity:.5; cursor:not-allowed; }
+  button.ghost { background:transparent; border:1px solid var(--line); color:var(--muted); }
+  .stage { background:#0a0c10; border:1px solid var(--line); border-radius:8px;
+           min-height:300px; display:flex; align-items:center; justify-content:center;
+           overflow:hidden; padding:6px; }
+  /* canvas, imagen y video comparten reglas: el canvas del modo cámara se
+     quedaba a su tamaño natural porque solo estaba cubierto img/video */
+  .stage img, .stage video, .stage canvas {
+    max-width:100%; max-height:72vh; display:block; border-radius:4px;
+  }
+  /* el lienzo se muestra a su tamaño NATURAL. Forzar width:100% sin height:auto
+     estira el canvas horizontal sin escalar la altura y la imagen queda achatada.
+     height:auto preserva la proporción: el canvas de 640 px se estira a 100%
+     del contenedor y las cajas vectoriales se escalan nítidas */
+  .stage canvas.live { max-width:100%; height:auto; }
+  .placeholder { color:#39404f; font-size:13px; padding:60px 20px; text-align:center; }
+  .risk { border-radius:8px; padding:14px; margin-bottom:12px; border:1px solid; }
+  /* Panel lateral de alertas (RQF08) */
+  .alert-box { border:1px solid var(--line); border-radius:10px; background:var(--panel);
+               margin-bottom:14px; max-height:340px; overflow:auto; }
+  .alert-item { display:flex; gap:10px; padding:10px; border-bottom:1px solid #1d212a; }
+  .alert-item:last-child { border-bottom:0; }
+  .alert-item img { width:96px; height:66px; object-fit:cover; border-radius:5px; flex-shrink:0;
+                    cursor:pointer; border:1px solid var(--line); }
+  .alert-item img:hover { border-color:var(--accent); }
+  .alert-desc { font-size:11.5px; color:#aab; margin-top:2px; }
+  .alert-alto { border-left:3px solid var(--alto); }
+  .alert-bar { display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }
+  .abtn { background:#232838; color:#e6e9ef; border:1px solid var(--line);
+          border-radius:6px; padding:6px 10px; font-size:12px; cursor:pointer;
+          text-decoration:none; }
+  .abtn:hover { border-color:var(--accent); }
+  .abtn.ghost { background:transparent; }
+  .abtn.danger { border-color:#5c2b2b; color:#e88; }
+  .abtn.danger:hover { background:#3a1c1c; border-color:var(--alto); }
+  .abtn[disabled] { opacity:.4; cursor:default; }
+  .alert-sel { align-self:flex-start; margin-top:2px; }
+  .alert-x { margin-left:auto; align-self:flex-start; background:none;
+             border:0; color:#666; cursor:pointer; font-size:15px; padding:0 3px; }
+  .alert-x:hover { color:var(--alto); }
+  .alert-medio { border-left:3px solid var(--medio); }
+  .alert-meta { font-size:11.5px; color:var(--muted); line-height:1.45; overflow-wrap:anywhere; }
+  .alert-tipo { font-size:13px; font-weight:560; }
+  .badge { display:inline-block; font-size:10px; padding:1px 6px; border-radius:9px;
+           background:#232838; color:var(--muted); margin-left:5px; }
+  .risk .lvl { font-size:19px; font-weight:700; letter-spacing:.04em; }
+  .risk .msg { font-size:12.5px; color:var(--muted); margin-top:5px; line-height:1.5; }
+  .r-ALTO { background:rgba(224,60,60,.10); border-color:rgba(224,60,60,.42); }
+  .r-ALTO .lvl { color:var(--alto); }
+  .r-MEDIO { background:rgba(242,168,60,.10); border-color:rgba(242,168,60,.42); }
+  .r-MEDIO .lvl { color:var(--medio); }
+  .r-BAJO { background:rgba(63,184,90,.10); border-color:rgba(63,184,90,.42); }
+  .r-BAJO .lvl, .r-NEUTRO .lvl { color:var(--bajo); }
+  table { width:100%; border-collapse:collapse; font-size:12.5px; }
+  th { text-align:left; color:var(--muted); font-weight:560; padding:6px 4px;
+       border-bottom:1px solid var(--line); font-size:11.5px; text-transform:uppercase; }
+  td { padding:6px 4px; border-bottom:1px solid #1d212a; }
+  .dot { width:9px; height:9px; border-radius:50%; display:inline-block; margin-right:6px;
+         vertical-align:-1px; }
+  .stat { display:flex; justify-content:space-between; font-size:12.5px; padding:4px 0;
+          border-bottom:1px solid #1d212a; }
+  .stat b { font-weight:600; }
+  .legend { font-size:12.5px; line-height:1.9; }
+  .legend b { font-weight:560; }
+  .req { color:var(--muted); font-size:11px; }
+  .note { font-size:11.5px; color:var(--muted); line-height:1.6; margin-top:10px;
+          padding-top:10px; border-top:1px solid var(--line); }
+  a { color:var(--accent); }
+  video { width:100%; border-radius:8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Prevención de Caídas y Riesgos en Escaleras</h1>
+  <div class="sub">Plataforma de pruebas local · YOLOv8 · 6 clases · <span id="dev">—</span></div>
+
+  <div class="tabs">
+    <div class="tab on" data-p="img">Imagen</div>
+    <div class="tab" data-p="vid">Video</div>
+    <div class="tab" data-p="cam">Cámara en vivo</div>
+    <div class="tab" data-p="info">Clases y requisitos</div>
+  </div>
+
+  <!-- IMAGEN -->
+  <div class="panel on" id="p-img">
+    <div class="grid">
+      <div>
+        <div class="ctrl">
+          <input type="file" id="fimg" accept="image/*">
+          <label>Umbral <input type="range" id="cimg" min="0.05" max="0.90" step="0.05" value="0.25">
+            <b id="cvimg">0.25</b></label>
+          <button id="bimg">Analizar</button>
+        </div>
+        <div class="stage" id="simg">
+          <div class="placeholder">Selecciona una imagen y pulsa «Analizar»</div>
+        </div>
+      </div>
+      <div>
+        <div class="card" style="margin-bottom:16px">
+          <h2>Alertas · RQF08</h2>
+          <div class="alert-box" id="alertbox1"><div class="req">Sin alertas.</div></div>
+<div class="alert-bar">
+              <a id="zip1" href="/api/alertas.zip" download="alertas.zip"
+                 class="abtn">Descargar todo (ZIP)</a>
+              <button id="borrarSel1" class="abtn ghost">Borrar seleccionadas</button>
+              <button id="borrarTodo1" class="abtn danger">Borrar todas</button>
+            </div>
+          <a id="zipbtn" href="/api/alertas.zip" download="alertas.zip"
+             style="display:none;margin-top:10px;background:#4c8dff;color:#fff;
+                    border-radius:7px;padding:8px 14px;font-size:13px;text-decoration:none;
+                    display:inline-block">Descargar todo (ZIP)</a>
+        </div>
+        <div id="rimg"></div>
+        <div class="card" style="margin-top:16px">
+          <h2>Detecciones</h2>
+          <div id="timg" class="placeholder" style="padding:20px 0">Sin resultados</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VIDEO -->
+  <div class="panel" id="p-vid">
+    <div class="grid">
+      <div>
+        <div class="ctrl">
+          <input type="file" id="fvid" accept="video/*">
+          <label>Umbral <input type="range" id="cvid" min="0.05" max="0.90" step="0.05" value="0.25">
+            <b id="cvvid">0.25</b></label>
+          <button id="bvid">Procesar video</button>
+        </div>
+        <div class="stage" id="svid" style="flex-direction:column;gap:10px;padding:12px">
+          <div class="placeholder" style="padding:40px 20px">Selecciona un video (mp4/avi) y pulsa «Procesar»</div>
+        </div>
+      </div>
+      <div>
+        <div class="card" style="margin-bottom:16px">
+          <h2>Alertas · RQF08</h2>
+          <div class="alert-box" id="alertbox2"><div class="req">Sin alertas.</div></div>
+<div class="alert-bar">
+              <a id="zip2" href="/api/alertas.zip" download="alertas.zip"
+                 class="abtn">Descargar todo (ZIP)</a>
+              <button id="borrarSel2" class="abtn ghost">Borrar seleccionadas</button>
+              <button id="borrarTodo2" class="abtn danger">Borrar todas</button>
+            </div>
+        </div>
+        <div class="card">
+          <h2>Procesado local</h2>
+          <div style="font-size:12.5px;color:var(--muted);line-height:1.6">
+            El video se decodifica, se infiere frame a frame en la GPU y se vuelve a codificar
+            con las cajas dibujadas. El progreso aparece en la consola del servidor.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CAMARA -->
+  <div class="panel" id="p-cam">
+    <div class="grid">
+      <div>
+        <div class="ctrl">
+          <button id="bcam">Conectar webcam</button>
+          <button id="bstop" class="ghost" disabled>Detener</button>
+          <label>Umbral <input type="range" id="ccam" min="0.05" max="0.90" step="0.05" value="0.25">
+            <b id="cvcam">0.25</b></label>
+          <label>Enviar cada
+            <select id="rate" style="background:#171a21;color:#e6e9ef;border:1px solid #262b36;border-radius:5px;padding:4px">
+              <option value="100">10 fps</option>
+              <option value="66">15 fps</option>
+              <option value="50">20 fps</option>
+              <option value="40">25 fps</option>
+              <option value="33" selected>30 fps (recomendado)</option>
+            </select>
+          </label>
+          <label title="Con SR el live sube a ~0.8-1.2 s/frame (≈1 fps). Sin SR el live es fluido a 30 fps con cajas frescas; el SR 4× se aplica en uploads o con este toggle (lento, con retardo).">
+            <input type="checkbox" id="fast"> SR en vivo (≈4 fps)
+          </label>
+        </div>
+        <div class="stage" id="scam">
+          <div class="placeholder">Pulsa «Conectar webcam» para usar la cámara de este equipo</div>
+        </div>
+        <div id="cammeta" style="margin-top:10px;font-size:12.5px;color:var(--muted)"></div>
+        <div class="card" style="margin-top:12px">
+          <label><input type="checkbox" id="audio-detection" checked> Analizar audio para posibles caídas</label>
+          <button type="button" class="ghost" id="audio-resume">Reanudar audio</button>
+          <div id="audio-status" role="status" aria-live="polite">Análisis acústico detenido</div>
+          <div class="req">Usa el audio de esta webcam. Un sonido no confirma una caída.</div>
+          <details><summary>Escuchar micrófono (puede causar realimentación)</summary><div id="audio-monitor"></div></details>
+        </div>
+      </div>
+      <div>
+        <div class="card" id="camrisk"></div>
+        <div class="card" style="margin-bottom:16px">
+          <h2>Alertas · RQF08</h2>
+          <div class="alert-box" id="alertbox3"><div class="req">Sin alertas.</div></div>
+<div class="alert-bar">
+              <a id="zip3" href="/api/alertas.zip" download="alertas.zip"
+                 class="abtn">Descargar todo (ZIP)</a>
+              <button id="borrarSel3" class="abtn ghost">Borrar seleccionadas</button>
+              <button id="borrarTodo3" class="abtn danger">Borrar todas</button>
+            </div>
+        </div>
+        <div class="card" style="margin-top:16px">
+          <h2>Cómo usar esta prueba</h2>
+          <div style="font-size:12.5px;color:var(--muted);line-height:1.7">
+            Coloca la cámara fija mirando una escalera y pide a alguien que la recorra.
+            <br><br>
+            La imagen de la izquierda es la que ve el navegador; el modelo corre
+            en el servidor. Cada frame enviado se devuelve ya anotado, con la
+            banda de FPS y riesgo.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- INFO -->
+  <div class="panel" id="p-info">
+    <div class="card">
+      <h2>Clases del modelo y su relación con Caso.md</h2>
+      <div class="legend">
+        {% for cid, info in classes.items() %}
+        <div style="padding:9px 0;border-bottom:1px solid #1d212a">
+          <span class="dot" style="background:rgb({{ info.color[2] }},{{ info.color[1] }},{{ info.color[0] }})"></span>
+          <b>{{ info.name }}</b>
+          <span class="req">· id {{ cid }} · {{ info.req }} · riesgo {{ info.risk }}</span>
+          <div class="req" style="margin:3px 0 0 15px">{{ info.desc }}</div>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="note">
+        <b>Alcance real del detector.</b> El modelo solo distingue estas 6 categorías.
+        Las categorías 1, 2 y 3 de <b>RQF02</b> (obstáculos en los escalones, no uso del
+        pasamanos y distracciones) <b>no están cubiertas</b>: no hay datos para ellas y,
+        según el diseño de <code>Caso.md</code>, se resuelven con keypoints de MediaPipe,
+        no con cajas de YOLO.
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/static/audio-live.js"></script>
+<script>
+const $ = s => document.querySelector(s);
+const BGR = c => `rgb(${c[2]},${c[1]},${c[0]})`;
+
+// pestanas
+document.querySelectorAll('.tab').forEach(t => t.onclick = () => {
+  document.querySelectorAll('.tab').forEach(x => x.classList.remove('on'));
+  document.querySelectorAll('.panel').forEach(x => x.classList.remove('on'));
+  t.classList.add('on'); $('#p-' + t.dataset.p).classList.add('on');
+  if (t.dataset.p !== 'cam') stopCam();
+});
+
+// deslizadores
+[['cimg','cvimg'],['cvid','cvvid'],['ccam','cvcam']].forEach(([i,o]) => {
+  $('#'+i).oninput = e => $('#'+o).textContent = (+e.target.value).toFixed(2);
+});
+
+// salud
+fetch('/api/health').then(r=>r.json()).then(d => {
+  $('#dev').textContent = `dispositivo: ${d.device} · pesos: ${d.weights.split('/').slice(-2).join('/')}`;
+});
+// setStat se llama desde iniciarCamara al primer frame; no se puede llamar
+// aqui porque `cammeta` y las refs de camara no existen todavía (DOMContentLoaded).
+
+// Un 500 de Flask devuelve una pagina HTML. Intentar parsearla como JSON da
+// "Unexpected token '<'", que no dice nada del problema real.
+async function readJson(r) {
+  const ct = r.headers.get('content-type') || '';
+  if (!ct.includes('application/json')) {
+    const txt = (await r.text()).slice(0, 300);
+    throw new Error(`El servidor devolvió ${r.status} (${ct || 'sin content-type'}). ` +
+                    `Revisa la consola del servidor. ${txt}`);
+  }
+  return r.json();
+}
+
+function riskBox(s) {
+  const cls = s.level === 'ALTO' ? 'r-ALTO' : s.level === 'MEDIO' ? 'r-MEDIO' : 'r-BAJO';
+  return `<div class="risk ${cls}"><div class="lvl">Riesgo: ${s.level}</div>
+          <div class="msg">${s.message}</div></div>`;
+}
+
+
+function riskPanels(d) {
+  let h = '';
+  // RQF02 (1) obstaculos
+  const obs = d.obstaculos || [];
+  h += `<div class="card" style="margin-bottom:12px">
+    <h2>Obstáculos en la escalera · RQF02 (1)</h2>`;
+  h += obs.length
+    ? '<table>' + obs.map(o=>`<tr><td>${o.objeto}</td>
+        <td class="req">${o.tipo === 'telefono' ? 'RQF02 (3) móvil'
+            : o.riesgo === 'ALTO' ? 'obstáculo' : 'escena'}</td></tr>`).join('') + '</table>'
+    : '<div class="req">Ningún objeto detectado sobre el escalón.</div>';
+  h += '</div>';
+  // RQF02 (2)(3) postura
+  const pos = d.postura || [];
+  h += `<div class="card" style="margin-bottom:12px">
+    <h2>Postura yTransitSafe · RQF02 (2)(3)</h2>`;
+  h += pos.length
+    ? '<table>' + pos.map(p=>`<tr><td>${p.tipo.replace(/_/g,' ')}</td>
+        <td>${p.ref}</td></tr>`).join('') + '</table>'
+    : '<div class="req">Sin señales de pasamanos, distracción ni tambaleo.</div>';
+  h += '</div>';
+  // RQF07 alertas
+  const al = d.alertas || [];
+  h += `<div class="card" style="margin-bottom:12px">
+    <h2>Alertas visuales confirmadas · RQF06 / RQF07</h2>`;
+  h += al.length
+    ? '<table>' + al.map(a=>`<tr><td>${a.alert_id}</td><td>${a.risk_type.replace(/_/g,' ')}</td>
+        <td>${a.duration_s}s</td></tr>`).join('') + '</table>'
+    : '<div class="req">Ninguna alerta: no hay riesgo persistente más de 3 s (RQF06).</div>';
+  h += '</div>';
+  const col = d.sistema === 'OPERATIVO' ? '#3fb85a'
+            : d.sistema === 'DEGRADADO' ? '#f2a83c' : '#e03c3c';
+  h += `<div class="card"><h2>Estado del sistema · RQNF09</h2>
+    <div class="stat"><span>Estado</span><b style="color:${col}">${d.sistema}</b></div>
+    <div class="stat"><span>Identidades seguidas</span><b>${d.tracks||0}</b></div>
+    <div class="stat"><span>Umbrales</span><b>75% / 85% (RQF04)</b></div>
+    <div class="stat"><span>Rostros</span><b>anonimizados (RQNF14)</b></div></div>`;
+  return h;
+}
+
+function detTable(dets) {
+  if (!dets.length) return '<div class="placeholder" style="padding:20px 0">Sin detecciones</div>';
+  let h = '<table><tr><th>Clase</th><th>Conf.</th><th>Riesgo</th><th>Caja</th></tr>';
+  for (const d of dets) {
+    // La lista mezcla cajas de YOLO con obstaculos y senales de postura.
+    // Las senales de postura son condiciones leidas de keypoints: NO tienen
+    // caja (`bbox` undefined) y traen `tipo` en lugar de `class_name`.
+    // Sin estas guardas, `d.bbox.join` lanzaba TypeError en cuanto el motor
+    // emitia sin_pasamanos o tambaleo, es decir, en cualquier foto real de
+    // escalera.
+    const nombre = d.class_name || d.objeto ||
+                   String(d.tipo || '?').replace(/_/g, ' ');
+    const conf = (d.confidence ?? d.conf ?? 0);
+    // /api/detect devuelve la caja en PIXELES y /api/frame en normalizado,
+    // asi que no se pone ninguna unidad: se muestran los valores tal cual.
+    const caja = Array.isArray(d.bbox)
+      ? d.bbox.join(', ')
+      : '<span class="req">' + (d.ref || '—') + '</span>';
+    h += `<tr><td>${nombre}</td>
+          <td>${d.risk || '—'}</td><td class="req">${caja}</td></tr>`;
+  }
+  return h + '</table>';
+}
+
+// ---------- imagen ----------
+$('#bimg').onclick = async () => {
+  const f = $('#fimg').files[0];
+  if (!f) return alert('Selecciona una imagen primero');
+  const fd = new FormData();
+  fd.append('file', f); fd.append('conf', $('#cimg').value);
+  $('#bimg').disabled = true; $('#bimg').textContent = 'Analizando…';
+  try {
+    const r = await fetch('/api/detect', {method:'POST', body:fd});
+    const d = await readJson(r);
+    if (d.error) { alert(d.error); return; }
+    const b64 = hexToB64(d.image);
+    $('#simg').innerHTML =
+      `<img src="data:image/jpeg;base64,${b64}">
+       <div style="margin-top:10px">
+         <a id="dl-img" download="analisis_" + (f.name.replace(/\W+/g,'_')) + ".jpg"
+            href="data:image/jpeg;base64,${b64}"
+            style="background:#4c8dff;color:#fff;border-radius:7px;padding:8px 14px;
+                   font-size:13px;text-decoration:none;display:inline-block">
+           Descargar imagen con las cajas</a>
+       </div>`;
+    $('#rimg').innerHTML = riskBox(d.summary) + `
+      <div class="card">
+        <h2>Métricas</h2>
+        <div class="stat"><span>Inferencia</span><b>${d.inference_ms} ms</b></div>
+        <div class="stat"><span>Resolución</span><b>${d.size[0]}×${d.size[1]}</b></div>
+        <div class="stat"><span>FPS estimado</span><b>${(1000/d.inference_ms).toFixed(1)}</b></div>
+        <div class="stat"><span>Detecciones</span><b>${d.summary.n}</b></div>
+      </div>`;
+    $('#rimg').innerHTML += riskPanels(d);
+    $('#timg').innerHTML = detTable(d.detections);
+    cargarAlertas();
+  } finally {
+    $('#bimg').disabled = false; $('#bimg').textContent = 'Analizar';
+  }
+};
+
+function hexToB64(hex) {
+  const b = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < b.length; i++) b[i] = parseInt(hex.substr(i*2, 2), 16);
+  let s = ''; for (let i = 0; i < b.length; i += 8192)
+    s += String.fromCharCode.apply(null, b.subarray(i, i+8192));
+  return btoa(s);
+}
+
+// ---------- video ----------
+$('#bvid').onclick = async () => {
+  const f = $('#fvid').files[0];
+  if (!f) return alert('Selecciona un video primero');
+  const fd = new FormData();
+  fd.append('file', f); fd.append('conf', $('#cvid').value);
+  $('#bvid').disabled = true; $('#bvid').textContent = 'Procesando… (mira la consola)';
+  $('#svid').innerHTML = '<div class="placeholder" style="padding:40px 20px">Procesando frame a frame…</div>';
+  try {
+    const r = await fetch('/api/video', {method:'POST', body:fd});
+    if (!r.ok) { const e = await readJson(r).catch(x => ({error: x.message})); alert(e.error || 'Error'); $('#svid').innerHTML=''; return; }
+    // La salida es H.264: OpenCV solo sabe escribir MPEG-4 Part 2, que los
+    // navegadores no reproducen, asi que el servidor lo recodifica.
+    const url = URL.createObjectURL(await r.blob());
+    $('#svid').innerHTML = `<video src="${url}" controls autoplay loop muted playsinline></video>
+      <div style="font-size:12.5px;color:#8b93a5">Resultado anotado (H.264)</div>`;
+  } catch (e) {
+    $('#svid').innerHTML = `<div class="placeholder" style="max-width:520px">Error: ${e.message}</div>`;
+  } finally {
+    $('#bvid').disabled = false; $('#bvid').textContent = 'Procesar video';
+  }
+};
+
+
+// Dibuja el frame y las cajas sobre el canvas de salida. El servidor devuelve
+// las cajas en coordenadas normalizadas (0..1), asi que se escalan al canvas.
+const RISK_COLOR = {ALTO:'#e03c3c', MEDIO:'#f2a83c', BAJO:'#3fb85a',
+                    NEUTRO:'#dcdcdc', CONTEXTO:'#c878c8'};
+function drawBoxes(src, dst, d) {
+  // `src` es el frame super-resuelto (SR 4×) devuelto por el servidor como
+  // `image`, o, si no se devolvió, el canvas nativo capturado en el navegador.
+  // Las cajas vienen normalizadas a 0..1 sobre el frame procesado, por lo que
+  // se proyectan a cualquier backing store sin importar la resolución original.
+  //
+   // NO se redimensiona dst: el backing store se mantiene fijo a 960 px en
+   // ambos modos (normal y SR), de modo que el canvas no "se achica" al
+   // cambiar del modo SR (frame 4×) al modo normal (960 px). src se
+   // dibuja escalado a dst.width×dst.height; en SR el frame 4× se sobremuestrea
+   // a 960 px (nítigo: downsampling bilineal). Antes, establecer dst.width =
+   // src.width hacía que el lienzo cambiara de tamaño entre frames y entre
+   // modos, y el video "saltaba" al reconstruir el backing store.
+  const c = dst.getContext('2d');
+  c.drawImage(src, 0, 0, dst.width, dst.height);
+  for (const b of d.detections) {
+    // las señales de postura no tienen caja: no se dibuja rectángulo
+    if (!b.bbox) {
+      const col = RISK_COLOR[b.risk] || '#dcdcdc';
+      c.font = 'bold 13px system-ui,sans-serif';
+      c.fillStyle = col;
+      c.fillText(`${(b.tipo||'').replace(/_/g,' ').toUpperCase()} ${b.ref||''}`.trim(),
+                  10, 54 + 16 * (d._sp = (d._sp||0) + 1) - 16);
+      continue;
+    }
+    const col = RISK_COLOR[b.risk] || '#dcdcdc';
+    const x1 = b.bbox[0]*dst.width, y1 = b.bbox[1]*dst.height;
+    const x2 = b.bbox[2]*dst.width, y2 = b.bbox[3]*dst.height;
+    c.strokeStyle = col; c.lineWidth = 2;
+    c.strokeRect(x1, y1, x2-x1, y2-y1);
+    const t = `${b.class_name}`;
+    c.font = '13px system-ui,sans-serif';
+    const tw = c.measureText(t).width;
+    c.fillStyle = col;
+    c.fillRect(x1, Math.max(0,y1-16), tw+8, 16);
+    c.fillStyle = '#141414';
+    c.fillText(t, x1+4, Math.max(12,y1-4));
+  }
+  // banda de estado
+  c.fillStyle = 'rgba(30,30,30,0.85)';
+  c.fillRect(0,0,dst.width,40);
+  c.fillStyle = '#fff'; c.font='13px system-ui,sans-serif';
+  c.fillText(`${cam.fps.toFixed(1)} fps   detecciones: ${d.summary.n}`, 10, 17);
+  c.fillStyle = RISK_COLOR[d.summary.level] || '#dcdcdc';
+  c.font='bold 13px system-ui,sans-serif';
+  c.fillText(`Riesgo: ${d.summary.level}`, 10, 34);
+}
+
+// ---------- camara del navegador ----------
+// El modelo corre en el servidor, pero la webcam esta en el navegador de este
+// equipo. Se captura con getUserMedia, se pinta en un canvas y cada frame se
+// envia a /api/frame, que lo devuelve ya anotado. Solo hay una peticion en
+// vuelo: encolarlas acumularia retraso y el panel mostraria frames viejos.
+let _estadoGlobal = 'DESCONOCIDO';
+let cam = { on:false, stream:null, busy:false, last:0, sent:0, err:null, ok:false, video:null, fps:0, t0:0, intentos:0 };
+let camGeneration = 0;
+let audioEl = null;  // <audio> para playback local del micrófono
+const fallAudio = new LiveFallAudio(message => { $('#audio-status').textContent = message; });
+$('#audio-detection').onchange = () => {
+  if ($('#audio-detection').checked && cam.on && cam.stream) fallAudio.start(cam.stream);
+  else fallAudio.stop();
+};
+$('#audio-resume').onclick = () => fallAudio.resume();
+
+function stopCam() {
+  camGeneration++;
+  fallAudio.stop();
+  cam.on = false;
+  if (cam.stream) { cam.stream.getTracks().forEach(t => t.stop()); cam.stream = null; }
+  if (cam.video) { cam.video.remove(); cam.video = null; }
+  if (audioEl) { audioEl.remove(); audioEl = null; }
+  document.querySelectorAll('#scam video').forEach(v => v.remove());
+   cam.sent = 0; cam.err = null; cam.ok = false; cam.fps = 0; cam.t0 = 0;
+   cam.busy = false;  // por si un sendFrame pendiente quedó cam.ok stuck
+  $('#bcam').disabled = false; $('#bcam').textContent = 'Conectar webcam';
+  $('#bstop').disabled = true;
+  $('#scam').innerHTML = '<div class="placeholder">Cámara detenida</div>';
+  $('#camrisk').innerHTML = ''; $('#cammeta').textContent = '';
+}
+
+$('#bstop').onclick = stopCam;
+
+$('#bcam').onclick = async () => {
+  if (cam.on) stopCam();
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    return camFail('Este navegador no permite el acceso a la cámara. ' +
+                   'Prueba con Chrome o Firefox.');
+  }
+  // getUserMedia solo funciona en contexto seguro: https o localhost
+  if (!window.isSecureContext) {
+    return camFail('El navegador bloquea la cámara porque la página no es un ' +
+                   'origen seguro. Abre la app en <b>localhost:5000</b> ' +
+                   '(no con la URL de tunneling de VS Code) o sírvela por HTTPS.');
+  }
+  // RQNF13: reconexion automatica de la señal. Si la camara se cae (USB,
+  // el navegador la libera, el equipo se suspende) se reintenta con espera
+  // creciente en luego de quedarse muerto hasta que el usuario recargue.
+  $('#bcam').disabled = true; $('#bcam').textContent = 'Conectando…';
+  cam.on = true; cam.intentos = 0;
+  const generation = camGeneration;
+  $('#bstop').disabled = false;
+  const connectedStream = await conectarCamara();
+  if (!cam.on || generation !== camGeneration) { connectedStream?.getTracks().forEach(t => t.stop()); return; }
+  cam.stream = connectedStream;
+  if (!cam.stream) { stopCam(); return; }
+  cam.stream.getVideoTracks()[0]?.addEventListener('ended', () => {
+    if (cam.on && generation === camGeneration) {
+      stopCam();
+      const reconnect = () => { if (!cam.on) $('#bcam').click(); };
+      setTimeout(reconnect, 3000);
+    }
+  });
+  if ($('#audio-detection').checked) fallAudio.start(cam.stream);
+
+  async function conectarCamara() {
+   try {
+       return await navigator.mediaDevices.getUserMedia({
+         video: { width:{ideal:1280}, height:{ideal:720} },
+         audio: {echoCancellation:false, noiseSuppression:false, autoGainControl:false} });
+     } catch (e) {
+       // Si falla con audio (permiso denegado, sin micrófono), reintentar
+       // sin audio: el video sigue funcionando, solo sin sonido.
+       try {
+         return await navigator.mediaDevices.getUserMedia({
+           video: { width:{ideal:1280}, height:{ideal:720} }});
+       } catch (e1) {
+         // Fallo alternativo con menor resolución.
+         try {
+           return await navigator.mediaDevices.getUserMedia({
+             video: { width:{ideal:640}, height:{ideal:480} },
+             audio: {echoCancellation:false, noiseSuppression:false, autoGainControl:false} });
+         } catch (e2) {
+           try {
+             return await navigator.mediaDevices.getUserMedia({
+               video: { width:{ideal:640}, height:{ideal:480} }});
+           } catch (e3) { e = e3; }
+         }
+       }
+       const m = {NotAllowedError:'Permiso denegado. Acepta la cámara en el candado de la barra de direcciones.',
+                  NotFoundError:'No se ha encontrado ninguna cámara en este equipo.',
+                  NotReadableError:'La cámara está siendo usada por otra aplicación.'}[e.name];
+       cam.intentos = (cam.intentos || 0) + 1;
+       if (cam.intentos <= 5 && cam.on) {
+         const espera = Math.min(1000 * cam.intentos, 8000);
+  $('#scam').innerHTML =
+    `<div class="placeholder">Reintentando conexión con la cámara… (${cam.intentos}/5)</div>`;
+         await new Promise(r => setTimeout(r, espera));
+         if (cam.on) return conectarCamara();
+       }
+       camFail(m || ('Error al abrir la cámara: ' + e.name));
+       return null;
+     }
+  }
+
+    cam.last = performance.now(); cam.sent = 0; cam.err = null;
+    cam.fps = 0; cam.t0 = 0;
+
+   // --- audio del navegador ---
+   // El stream capturado incluye pista de audio del micrófono. Se reproduce
+   // localmente en un <audio> (NO en el servidor) para que el usuario escuche
+   // lo que capta la cámara en tiempo real.
+    const audioTracks = cam.stream.getAudioTracks();
+    if (audioTracks.length > 0) {
+      audioEl = document.createElement('audio');
+      audioEl.srcObject = cam.stream;
+      audioEl.autoplay = true;
+      audioEl.muted = true;  // Evita que el parlante realimente el detector.
+      audioEl.controls = true;
+      audioEl.playsInline = true;
+      audioEl.style.cssText = 'width:100%;max-width:360px;height:40px;margin-top:8px';
+      $('#audio-monitor').appendChild(audioEl);
+      audioEl.play().catch(() => {
+        // Autoplay bloqueado: al primer click en cualquier parte se desmutea.
+        audioEl.play().catch(()=>{});
+      });
+    }
+
+   // El <video> es solo la fuente del canvas. NO se oculta con display:none:
+  // un video con display:none no carga metadata en varios navegadores, se
+  // queda con videoWidth = 0 y el canvas sale 0x0, con lo que toBlob() devuelve
+  // null y no se envia ni un frame (la imagen se queda en negro). Se mantiene
+  // en el DOM con tamaño 1px, fuera de la vista.
+  const v = document.createElement('video');
+  v.srcObject = cam.stream; v.muted = true; v.playsInline = true; v.autoplay = true;
+  v.style.cssText = 'position:absolute;width:1px;height:1px;opacity:0;pointer-events:none';
+  document.body.appendChild(v);
+
+  // previsualizacion en crudo: deja claro de inmediato si la camara llega al
+  // navegador, aunque la inferencia falle
+  const prev = document.createElement('video');
+  prev.srcObject = cam.stream; prev.muted = true; prev.playsInline = true; prev.autoplay = true;
+  prev.style.cssText = 'position:absolute;right:10px;bottom:10px;width:22%;min-width:130px;border:1px solid #262b36;border-radius:6px;z-index:5;opacity:.85';
+  prev.setAttribute('playsinline','');
+  prev.play().catch(()=>{});
+
+  const setStat = () => {
+    $('#cammeta').innerHTML =
+      `${cam.ok ? 'conectada' : '<b style="color:#e03c3c">sin señal</b>'} · ` +
+      `cámara ${v.videoWidth}×${v.videoHeight} → envío ${small.width}×${small.height} · ` +
+      `${cam.sent} frames · ${cam.fps.toFixed(1)} fps · ` +
+      `${$('#fast').checked ? 'SR en vivo (≈4 fps)' : 'fluido 30 fps (sin SR)'}` +
+      `umbral ${$('#ccam').value}` +
+      (cam.err ? ` · <b style="color:#e03c3c">${cam.err}</b>` : '');
+  };
+
+  try {
+    await v.play();
+    // se espera a que haya dimensiones reales antes de crear el canvas
+    if (v.readyState < 1 || !v.videoWidth) {
+      await new Promise((res, rej) => {
+        const to = setTimeout(() => rej(new Error('la cámara no entrega vídeo')), 8000);
+        v.onloadedmetadata = () => { clearTimeout(to); res(); };
+      });
+    }
+  } catch (e) {
+    stopCam();
+    return camFail('No se pudo iniciar la cámara: ' + (e.message || e.name));
+  }
+  if (!v.videoWidth) {
+    stopCam();
+    return camFail('El navegador no entrega imagen de la cámara. Puede que esté ' +
+                   'ocupada por otra aplicación (Zoom, Teams,OBS).');
+  }
+  if (!cam.on || generation !== camGeneration) { v.remove(); return; }
+
+  const cv = document.createElement('canvas');
+  cv.width = v.videoWidth; cv.height = v.videoHeight;
+  const ctx = cv.getContext('2d');
+   // segundo canvas, ya escalado, que es el que se envia
+   const LIVE_W = 960;
+   const small = document.createElement('canvas');
+   small.width = v.videoWidth > LIVE_W ? LIVE_W : v.videoWidth;
+   small.height = Math.round(v.videoHeight * small.width / v.videoWidth);
+   const sctx = small.getContext('2d');
+   // canvas de SALIDA: backing store fijo a LIVE_W (960 px), casi el ancho
+   // del contenedor (~944 px). El envío al servidor también es a 960 px
+  // (encode ~7 ms, suficiente para 30 fps) pero en 1:1 con el canvas de salida
+  // —nada de estiramiento ni borrura. CSS max-width:100% lo reduce a ~944 px
+  // (casi 1:1). Antes el backing store era 1280 px en SR y 960 px en normal y
+  // el canvas "saltaba" de tamaño; ahora es siempre 960 px → el cuadro no se
+   // achica al cambiar de modo.
+   const disp = document.createElement('canvas');
+   disp.classList.add('live');
+   disp.width = LIVE_W; disp.height = Math.round(LIVE_W * cv.height / cv.width);
+  // Se vacia el hueco y se reinserta el lienzo grande MAS la previsualizacion
+  // en crudo: antes el `innerHTML=''` se comia la previsualizacion y solo
+  // quedaba un lienzo a tamano natural, que se veía pequeno.
+   const sc = $('#scam');
+   sc.innerHTML = '';
+   sc.style.position = 'relative';
+   sc.appendChild(disp);
+   sc.appendChild(prev);
+   setStat();
+  $('#rate').onchange = setStat;
+
+  // El loop se separa en dos partes:
+  //   * scheduleFrame: programa el siguiente setTimeout INMEDIATAMENTE
+  //     (sin await), de modo que el intervalo real sea `gap`, no
+  //     `gap + tiempo_async`. Antes loop() se llamaba al final del callback
+  //     async; como sendFrame duraba ~80 ms (imagen base64 incluida), el
+  //     intervalo efectivo era 33+80 = 113 ms → ~9 fps. Ahora gap se respeta
+  //     al milisegundo y el display sube a 30 fps reales.
+  //   * sendFrame: el trabajo async (encode → fetch → draw) corre en paralelo.
+  //     cam.busy impide solapar peticiones: si el frame anterior ya terminó
+  //     (9-12 ms << 33 ms de gap), se envía el siguiente; si no, se salta ese
+  //     tick y se intenta el siguiente.
+  async function sendFrame() {
+    cam.busy = true;
+    try {
+      if (!v.videoWidth) throw new Error('se perdió la señal de vídeo');
+      ctx.drawImage(v, 0, 0, cv.width, cv.height);
+      // Envío a 960 px: el modelo hace letterbox a imgsz=640 de todos modos,
+      // así que mandar 1280 duplicaba el JPEG (encode ~20 ms vs ~7 ms a 960 px)
+      // sin ganar precisión. 960 px cabe casi 1:1 en el ancho del contenedor
+      // (~944 px) gracias a CSS max-width:100%, así que el canvas no se achica
+      // al cambiar de modo y no hay estiramiento ni borrura. A 640 px el canvas
+      // quedaba pequeño (2/3 del ancho) y estirarlo con CSS pixelaba el video.
+      let w = cv.width, h = cv.height;
+      if (w > LIVE_W) { h = Math.round(h * LIVE_W / w); w = LIVE_W; }
+      if (w !== cv.width) {
+        small.width = w; small.height = h;
+        sctx.drawImage(cv, 0, 0, w, h);
+      } else { small.width = w; small.height = h; sctx.drawImage(cv, 0, 0); }
+      const blob = await new Promise(res => {
+        // Safety: si el hilo principal está bloqueado (GC / decode / inferencia
+        // S7) el callback de toBlob se retrasa. 500 ms quedaba justo y saltaba
+        // "canvas no pudo cargar imagen" por ratos; 1500 ms da holgura sin
+        // tocar el pacer (~100 ms) — solo interesa cuando está bloqueado.
+        const t = setTimeout(() => res(null), 1500);
+        small.toBlob(b => { clearTimeout(t); res(b); }, 'image/jpeg', 0.8);
+      });
+      if (!blob) throw new Error('el canvas no se pudo convertir en imagen');
+      // Cuerpo binario crudo: evita el parser multipart de Werkzeug, que
+      // con un JPEG de ~50 KB costaba ~17 ms por fotograma. A 960 px el
+      // blob pesa ~12 KB y el envío + decode quedan por debajo de 5 ms.
+      // #fast es SR en vivo: OFF (default) = live fluido 30 fps sin SR; ON =
+      // SR 4× (lento ~1 fps). El display es asíncrono: repinta el último
+      // SR+cajas a 30 fps (se permite retardo). Se purga el frame-by-frame.
+      const sr = $('#fast').checked ? 1 : 0;
+      const r = await fetch('/api/frame?conf=' + $('#ccam').value +
+          '&overlay=0&sync=0&sr=' + sr,
+          {method:'POST', headers:{'Content-Type':'image/jpeg'}, body: blob});
+      const d = await readJson(r);
+      if (!cam.on || generation !== camGeneration) return;
+      if (d.error) throw new Error(d.error);
+      // En modo SR on-demand (checkbox SR en vivo) el servidor devuelve
+      // el frame super-resuelto 4× como `image` en base64: se dibuja ese
+      // lienzo para mostrar la SR. En modo normal (sin SR) el servidor
+      // NO envía la imagen (el live a 30 fps sin ella), así que se usa el
+      // frame nativo capturado aqui en el canvas `small`.
+      if (d.image) {
+        const img = new Image();
+        img.onload = () => { if (cam.on && generation === camGeneration) drawBoxes(img, disp, d); };
+        const b64 = /^[0-9a-f]+$/i.test(d.image) ? hexToB64(d.image) : d.image;
+        img.src = 'data:image/jpeg;base64,' + b64;
+      } else {
+        drawBoxes(small, disp, d);
+      }
+      $('#camrisk').innerHTML = riskBox(d.summary) + `
+          <div class="stat"><span>Inferencia</span><b>${d.timing.predict} ms</b></div>
+          <div class="stat"><span>Dibujo</span><b>${d.timing.draw} ms</b></div>
+          <div class="stat"><span>Identidades</span><b>${d.tracks||0}</b></div>` +
+          riskPanels(d);
+      cam.err = null;
+      if (!cam.ok && cam.on) {
+        setStat();
+        $('#bcam').textContent = 'Conectado';
+        $('#bstop').disabled = false;
+        cam.ok = true;  // solo si la cámara sigue activa (evita race con stopCam)
+      }
+  } catch (e) {
+      // los errores se muestran en pantalla: antes se ignoraban y la
+      // imagen se quedaba en negro sin explicar nada
+      if (generation === camGeneration) cam.err = e.message || String(e);
+    } finally {
+      if (generation !== camGeneration || !cam.on) return;
+      // cam.busy SIEMPRE se libera, incluso si setStat() o el cálculo de
+      // fps fallan (causaba el dropeo brusaco a 5 fps: un error en el
+      // finally del try/catch dejaba cam.busy=true para siempre).
+      cam.last = performance.now();
+      cam.sent++;
+      // fps medidos sobre frames realmente completados, no sobre el
+      // intervalo de envio: así se ve el rendimiento real
+      if (!cam.t0) cam.t0 = cam.last;
+      if (cam.last - cam.t0 > 500) {
+        cam.fps = cam.sent / ((cam.last - cam.t0) / 1000);
+        cam.sent = 0; cam.t0 = cam.last;
+        setStat();
+      }
+      cam.busy = false;
+    }
+  };
+
+  // ScheduleFrame programa el próximo setTimeout de inmediato (sin await),
+  // respetando `gap` como intervalo real. sendFrame corre en paralelo.
+  const scheduleFrame = () => {
+    if (!cam.on || generation !== camGeneration) return;
+    const gap = +$('#rate').value;
+    setTimeout(() => {
+      if (!cam.on || generation !== camGeneration) return;
+      if (!cam.busy) {
+        sendFrame();  // fire: no se espera, scheduleFrame sigue
+      }
+      scheduleFrame();  // ← INMEDIATO, no al final del async
+    }, Math.max(0, gap));
+  };
+  scheduleFrame();
+  cam.video = v;
+};
+
+// Panel de alertas (RQF08). Lee el historial del servidor y lo pinta en los
+// tres pestanas.
+const SEV_TXT = {ALTO:'Crítico', MEDIO:'Precaución', BAJO:'Bajo', NEUTRO:'-', CONTEXTO:'-'};
+async function cargarAlertas() {
+  let d;
+  try { d = await (await fetch('/api/alerts')).json(); }
+  catch (e) { return; }
+  const lista = d.alertas || [];
+  const html = lista.length ? lista.map(a => `
+    <div class="alert-item ${a.severity==='ALTO'?'alert-alto':'alert-medio'}" data-id="${a.alert_id}">
+      <input type="checkbox" class="alert-sel" value="${a.alert_id}" title="Seleccionar">
+       ${a.imagen ? `<a href="${a.imagen}" download title="Descargar">
+           <img src="${a.imagen}" alt=""></a>`
+           : a.source === 'audio' ? '' : '<div style="width:96px;height:66px;background:#0d0f14;border-radius:5px"></div>'}
+        <div style="min-width:0;flex:1">
+        <div class="alert-tipo">${a.source === 'audio' ? 'Posible caída detectada acústicamente' : (a.risk_type||'').replace(/_/g,' ')}
+          <span class="badge">${SEV_TXT[a.severity]||a.severity}</span></div>
+        <div class="alert-meta">${(a.timestamp||'').replace('T',' ')} · ${a.source === 'audio'
+          ? `Audio · transmisión ${a.stream_id} · impacto ${a.impact_offset_s}s`
+          : `${a.duration_s}s · id ${a.track_id}`}</div>
+        <div class="alert-meta">${a.risk_ref||''}</div>
+        ${a.description ? `<div class="alert-desc">${a.description}</div>` : ''}
+      </div>
+      <button class="alert-x" data-del="${a.alert_id}" title="Borrar esta alerta">×</button>
+    </div>`).join('') : '<div class="req">Sin alertas registradas.</div>';
+  for (const id of ['alertbox1','alertbox2','alertbox3']) {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = html;
+  }
+  const hay = (d.total || 0) > 0;
+  for (const n of [1,2,3]) {
+    const z = document.getElementById('zip' + n);
+    const b1 = document.getElementById('borrarSel' + n);
+    const b2 = document.getElementById('borrarTodo' + n);
+    if (z) z.style.display = hay ? 'inline-block' : 'none';
+    if (b1) b1.disabled = !hay;
+    if (b2) b2.disabled = !hay;
+  }
+}
+async function refrescarEstado() {
+  try {
+    const d = await (await fetch('/api/health')).json();
+    _estadoGlobal = d.estado || 'DESCONOCIDO';
+  } catch (e) { _estadoGlobal = 'SIN CONEXION'; }
+}
+document.addEventListener('DOMContentLoaded', () => {
+  cargarAlertas(); refrescarEstado();
+  setInterval(() => { cargarAlertas(); refrescarEstado(); }, 3000);
+});
+
+  // --- borrar alertas: individual, seleccionadas o todas ---
+  const idsSeleccionados = () =>
+    [...document.querySelectorAll('.alert-sel:checked')].map(c => c.value);
+
+  async function borrar(ids, que) {
+    if (!confirm('¿' + que + '?')) return;
+    try {
+      const r = await fetch('/api/alertas', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(ids ? { ids } : {})
+      });
+      if (!r.ok) { alert('No se pudo borrar: ' + r.status); return; }
+      await cargarAlertas();
+    } catch (e) { alert('Error: ' + e.message); }
+  }
+
+  // un solo manejador para los tres paneles
+  document.addEventListener('click', (ev) => {
+    const del = ev.target.closest('[data-del]');
+    if (del) { ev.stopPropagation(); borrar([del.dataset.del], 'Borrar esta alerta'); return; }
+    const sel = ev.target.closest('#borrarSel1,#borrarSel2,#borrarSel3');
+    if (sel) { const ids = idsSeleccionados();
+      if (!ids.length) { alert('No hay ninguna seleccionada. Marca las casillas.'); return; }
+      borrar(ids, 'Borrar ' + ids.length + ' alerta(s)'); return; }
+    const all = ev.target.closest('#borrarTodo1,#borrarTodo2,#borrarTodo3');
+    if (all) { borrar(null, 'Borrar TODAS las alertas y sus imagenes. No se puede deshacer'); }
+  });
+
+  // deseleccionar al recargar
+  for (const id of ['alertbox1','alertbox2','alertbox3']) {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('change', () => { /* mantiene el estado */ });
+  }
+
+
+function camFail(msg) {
+  $('#scam').innerHTML = `<div class="placeholder" style="max-width:520px">${msg}</div>`;
+  $('#bcam').disabled = false; $('#bcam').textContent = 'Conectar webcam';
+}
+window.addEventListener('beforeunload', stopCam);
+</script>
+</body>
+</html>
