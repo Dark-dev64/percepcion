@@ -59,6 +59,35 @@ condiciones de postura, con MediaPipe Pose y un detector COCO:
 
 ## Puesta en marcha
 
+### Windows con Ubuntu en WSL: video y audio en CPU
+
+Requiere Ubuntu en WSL con Python 3.12, `curl` y las bibliotecas de sistema
+`libgl1`, `libglib2.0-0`, `libegl1`, `libgles2` y `libportaudio2`.
+Desde PowerShell, en la carpeta del proyecto, instala una sola vez:
+
+```powershell
+.\instalar.cmd
+```
+
+Para iniciar, incluso después de reiniciar el equipo:
+
+```powershell
+.\iniciar.cmd
+```
+
+Abre <http://localhost:5000>. Para probar audio, selecciona **Cámara en vivo**
+y permite el acceso a la cámara y al micrófono. Detén el servidor con `Ctrl+C`.
+
+El entorno se guarda en `~/.local/share/percepcion/venv` dentro de Ubuntu.
+Las rutas de `/tmp/video-g-g-audio-*` eran entornos temporales de pruebas y
+pueden desaparecer; no se necesitan para este arranque.
+En Ubuntu, los comandos equivalentes son `bash scripts/setup_cpu.sh` y
+`bash scripts/start_cpu.sh`, ejecutados desde la carpeta del proyecto.
+Esta instalación incluye los detectores de video y audio; Real-ESRGAN es
+opcional y utiliza las dependencias adicionales de la instalación original.
+
+### Instalación original
+
 ```bash
 python3 -m venv venv
 ./venv/bin/python -m pip install -r requirements.txt
